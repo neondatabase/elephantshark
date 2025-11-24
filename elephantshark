@@ -21,6 +21,7 @@ require "net/imap" # for SASL/SCRAM auth
 require "digest" # for MD5 auth
 
 Thread.abort_on_exception = true
+Thread.report_on_exception = false
 
 SCRIPT_NAME = "Elephantshark" # note: name must be valid as a certificate CN
 SCRIPT_INFO = "https://github.com/neondatabase-labs/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0"
@@ -708,8 +709,7 @@ loop do
   print_conn_num(conn_num)
   puts "connected at t0 = #{Time.now}"    
 
-  Thread.new(client_sock, conn_num) do |client_sock, conn_num|
-
+  conn_thread = Thread.new(client_sock, conn_num) do |client_sock, conn_num|
     cnputs = lambda do |*args|
       args.each_with_index do |arg, i|
         arg.split("\n").each_with_index do |line, j|
@@ -718,6 +718,11 @@ loop do
           puts(line)
         end
       end
+    end
+
+    early_exit = lambda do |msg|
+      cnputs.("disconnected #{msg}")
+      Thread.exit
     end
 
     target_via_sni = nil
@@ -758,7 +763,7 @@ loop do
     client_direct_ssl = nil
 
     first_byte = client_sock.recv(1, Socket::MSG_PEEK)
-    next if first_byte.nil?
+    early_exit.("with no data received") if first_byte.nil?
 
     if first_byte == bin_str("\x16") # start of a TLS handshake record
       client_direct_ssl = true
@@ -796,7 +801,7 @@ loop do
 
     cnputs.("Client TLS cert", client_sock.cert.to_text, client_sock.cert.to_pem) if options[:log_certs] && client_sock.respond_to?(:cert)
 
-    next if first_eight.nil? # start again if disconnected
+    early_exit.("reading first eight bytes") if first_eight.nil? # start again if disconnected
 
     # connection startup + auth
 
@@ -877,7 +882,7 @@ loop do
     if options[:force_password] # request password from client, and use it to do either password or SCRAM auth with server
       cnputs.("now overriding authentication")
       auth_msg = server_reader.next_message { |str| cnputs.(server_to_script(str)) }
-      next if auth_msg.nil?
+      early_exit.("awaiting auth message") if auth_msg.nil?
       raise "expected auth message" unless auth_msg[0] == "R"
 
       auth_type = auth_msg[5..8].unpack1("N")
@@ -889,7 +894,7 @@ loop do
         # request cleartext password from client
         pg_send(client_sock, [pg_msg("R", "\x00\x00\x00\x03")], :server) { |str| cnputs.(script_to_client(str)) }
         pwd_msg = client_reader.next_message(true) { |str| cnputs.(client_to_script(str)) }
-        next if pwd_msg.nil? # restart on disconnect: this happens if psql prompts the user for the password
+        early_exit.("for client to request password") if pwd_msg.nil?
         raise "expected password message" unless pwd_msg[0] == "p"
         pwd = pwd_msg[5..].unpack1("Z*") # remove null terminator
 
@@ -924,14 +929,14 @@ loop do
           pg_send(server_sock, [pg_msg("p", scram_msg)], :client) { |str| cnputs.(script_to_server(str)) }
 
           server_first_msg = server_reader.next_message { |str| cnputs.(server_to_script(str)) }
-          next if server_first_msg.nil?
+          early_exit.("awaiting AuthenticationSASLContinue") if server_first_msg.nil?
           raise "expected AuthenticationSASLContinue" unless server_first_msg[0] == "R" && server_first_msg[5..8] == bin_str("\x00\x00\x00\x0b")
 
           client_final_msg = auth.process(server_first_msg[9..])
           pg_send(server_sock, [pg_msg("p", client_final_msg)], :client) { |str| cnputs.(script_to_server(str)) }
 
           server_final_message = server_reader.next_message { |str| cnputs.(server_to_script(str)) }
-          next if server_final_message.nil?
+          early_exit.("awaiting AuthenticationSASLFinal") if server_final_message.nil?
           raise "expected AuthenticationSASLFinal" unless server_final_message[0] == "R" && server_final_message[5..8] == bin_str("\x00\x00\x00\x0c")
 
           auth.process(server_final_message[9..]) # raises an error if server is not authenticated
@@ -987,6 +992,10 @@ loop do
     server_sock.close unless server_sock.nil?
     client_to_server_thread.kill unless client_to_server_thread.nil?
     server_to_client_thread.kill unless server_to_client_thread.nil?
-    exit if options[:quit_on_hangup]
+  end
+
+  if options[:quit_on_hangup]
+    conn_thread.join
+    exit
   end
 end
