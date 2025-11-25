@@ -61,82 +61,81 @@ Back in the first terminal, see what bytes got exchanged:
 
 ```text
 % elephantshark
-listening ...
-connected at t0 = 2025-07-04 14:28:59 +0100
-client -> script: "\x00\x00\x00\x08\x04\xd2\x16\x2f" = SSLRequest
-script -> client: "S" = SSL supported
-TLSv1.3/TLS_AES_256_GCM_SHA384 connection established with client
-  server name via SNI: ep-crimson-sound-a8nnh11s.eastus2.azure.neon.tech.local.neon.build
-client -> script: "\x00\x00\x00\x56" = 86 bytes of startup message "\x00\x03\x00\x00" = protocol version
-  "user\x00" = key "neondb_owner\x00" = value
-  "database\x00" = key "neondb\x00" = value
-  "application_name\x00" = key "psql\x00" = value
-  "client_encoding\x00" = key "UTF8\x00" = value
-  "\x00" = end
-connecting to Postgres server: ep-crimson-sound-a8nnh11s.eastus2.azure.neon.tech
-script -> server: "\x00\x00\x00\x08\x04\xd2\x16\x2f" = SSLRequest
-server -> script: "S" = SSL supported
-TLSv1.3/TLS_AES_256_GCM_SHA384 connection established with server
-forwarding client startup message to server
-script -> server: "\x00\x00\x00\x56" = 86 bytes of startup message "\x00\x03\x00\x00" = protocol version
-  "user\x00" = key "neondb_owner\x00" = value
-  "database\x00" = key "neondb\x00" = value
-  "application_name\x00" = key "psql\x00" = value
-  "client_encoding\x00" = key "UTF8\x00" = value
-  "\x00" = end
-forwarding all later traffic
-server -> client: "R" = Authentication "\x00\x00\x00\x2a" = 42 bytes "\x00\x00\x00\x0a" = AuthenticationSASL
-  "SCRAM-SHA-256-PLUS\x00" = SASL mechanism
-  "SCRAM-SHA-256\x00" = SASL mechanism
-  "\x00" = end
-^^ 43 bytes forwarded at +0.61s, 0 bytes left in buffer
-client -> server: "p" = SASLInitialResponse "\x00\x00\x00\x36" = 54 bytes
-  "SCRAM-SHA-256\x00" = selected mechanism "\x00\x00\x00\x20" = 32 bytes follow
-  "n,,n=,r=fci+VTkzKrO1kJLK0tL7DEQ1" = SCRAM client-first-message
-^^ 55 bytes forwarded at +0.61s, 0 bytes left in buffer
-server -> client: "R" = Authentication "\x00\x00\x00\x5c" = 92 bytes "\x00\x00\x00\x0b" = AuthenticationSASLContinue
-  "r=fci+VTkzKrO1kJLK0tL7DEQ1Urymgg5N9lizsp07o96IuAEP,s=KBGVGRza5gHefnp4OSU8Gw==,i=4096" = SCRAM server-first-message
-^^ 93 bytes forwarded at +0.71s, 0 bytes left in buffer
-client -> server: "p" = SASLResponse "\x00\x00\x00\x6c" = 108 bytes
-  "c=biws,r=fci+VTkzKrO1kJLK0tL7DEQ1Urymgg5N9lizsp07o96IuAEP,p=PTTYe085GzltpFoYDRDnnJZMPxUKE1Ajrryw6XFY74E=" = SCRAM client-final-message
-^^ 109 bytes forwarded at +0.71s, 0 bytes left in buffer
-server -> client: "R" = Authentication "\x00\x00\x00\x36" = 54 bytes "\x00\x00\x00\x0c" = AuthenticationSASLFinal
-  "v=Oj1crnRpVuFmr693/pTL1lf5+sP7rV0eDW6A/kCTCjg=" = SCRAM server-final-message
-server -> client: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x00" = AuthenticationOk
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x15" = 21 bytes "is_superuser\x00" = key "off\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x17" = 23 bytes "DateStyle\x00" = key "ISO, MDY\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x17" = 23 bytes "in_hot_standby\x00" = key "off\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x23" = 35 bytes "standard_conforming_strings\x00" = key "on\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x19" = 25 bytes "integer_datetimes\x00" = key "on\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x19" = 25 bytes "server_encoding\x00" = key "UTF8\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x20" = 32 bytes "search_path\x00" = key "\"$user\", public\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x1a" = 26 bytes "application_name\x00" = key "psql\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x26" = 38 bytes "default_transaction_read_only\x00" = key "off\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x27" = 39 bytes "session_authorization\x00" = key "neondb_owner\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x18" = 24 bytes "server_version\x00" = key "17.5\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x1b" = 27 bytes "IntervalStyle\x00" = key "postgres\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x11" = 17 bytes "TimeZone\x00" = key "GMT\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x19" = 25 bytes "client_encoding\x00" = key "UTF8\x00" = value
-server -> client: "S" = ParameterStatus "\x00\x00\x00\x1a" = 26 bytes "scram_iterations\x00" = key "4096\x00" = value
-server -> client: "K" = BackendKeyData "\x00\x00\x00\x0c" = 12 bytes "\x8c\xa5\xc2\x9a" = process ID "\xfe\xb8\x7d\x87" = secret key
-server -> client: "Z" = ReadyForQuery "\x00\x00\x00\x05" = 5 bytes "I" = idle
-^^ 504 bytes forwarded at +1.22s, 0 bytes left in buffer
-client -> server: "Q" = Query "\x00\x00\x00\x12" = 18 bytes "SELECT now();\x00" = query
-^^ 19 bytes forwarded at +8.62s, 0 bytes left in buffer
-server -> client: "T" = RowDescription "\x00\x00\x00\x1c" = 28 bytes "\x00\x01" = 1 columns follow
-  "now\x00" = column name "\x00\x00\x00\x00" = table OID: 0 "\x00\x00" = table attrib no: 0 
-  "\x00\x00\x04\xa0" = type OID: 1184 "\x00\x08" = type length: 8 "\xff\xff\xff\xff" = type modifier: -1 "\x00\x00" = format: text
-server -> client: "D" = DataRow "\x00\x00\x00\x27" = 39 bytes "\x00\x01" = 1 columns follow
-  "\x00\x00\x00\x1d" = 29 bytes "2025-07-04 13:29:08.633783+00" = column value
-server -> client: "C" = CommandComplete "\x00\x00\x00\x0d" = 13 bytes "SELECT 1\x00" = command tag
-server -> client: "Z" = ReadyForQuery "\x00\x00\x00\x05" = 5 bytes "I" = idle
-^^ 89 bytes forwarded at +8.73s, 0 bytes left in buffer
-client -> server: "X" = Terminate "\x00\x00\x00\x04" = 4 bytes
-^^ 5 bytes forwarded at +10.15s, 0 bytes left in buffer
-client hung up
-connection end
-
-listening ...
+#1  listening on 127.0.0.1 port 5432 ...
+#1  connected at t0 = 2025-07-04 14:28:59 +0100
+#2  listening on 127.0.0.1 port 5432 ...
+#1  client -> script: "\x00\x00\x00\x08\x04\xd2\x16\x2f" = SSLRequest
+#1  script -> client: "S" = SSL supported
+#1  TLSv1.3/TLS_AES_256_GCM_SHA384 connection established with client
+#1    server name via SNI: ep-crimson-sound-a8nnh11s.eastus2.azure.neon.tech.local.neon.build
+#1  client -> script: "\x00\x00\x00\x56" = 86 bytes of startup message "\x00\x03\x00\x00" = protocol version
+#1    "user\x00" = key "neondb_owner\x00" = value
+#1    "database\x00" = key "neondb\x00" = value
+#1    "application_name\x00" = key "psql\x00" = value
+#1    "client_encoding\x00" = key "UTF8\x00" = value
+#1    "\x00" = end
+#1  connecting to Postgres server: ep-crimson-sound-a8nnh11s.eastus2.azure.neon.tech
+#1  script -> server: "\x00\x00\x00\x08\x04\xd2\x16\x2f" = SSLRequest
+#1  server -> script: "S" = SSL supported
+#1  TLSv1.3/TLS_AES_256_GCM_SHA384 connection established with server
+#1  forwarding client startup message to server
+#1  script -> server: "\x00\x00\x00\x56" = 86 bytes of startup message "\x00\x03\x00\x00" = protocol version
+#1    "user\x00" = key "neondb_owner\x00" = value
+#1    "database\x00" = key "neondb\x00" = value
+#1    "application_name\x00" = key "psql\x00" = value
+#1    "client_encoding\x00" = key "UTF8\x00" = value
+#1    "\x00" = end
+#1  forwarding all later traffic
+#1  server -> client: "R" = Authentication "\x00\x00\x00\x2a" = 42 bytes "\x00\x00\x00\x0a" = AuthenticationSASL
+#1    "SCRAM-SHA-256-PLUS\x00" = SASL mechanism
+#1    "SCRAM-SHA-256\x00" = SASL mechanism
+#1    "\x00" = end
+#1  ^^ 43 bytes forwarded at +0.61s
+#1  client -> server: "p" = SASLInitialResponse "\x00\x00\x00\x36" = 54 bytes
+#1    "SCRAM-SHA-256\x00" = selected mechanism "\x00\x00\x00\x20" = 32 bytes follow
+#1    "n,,n=,r=fci+VTkzKrO1kJLK0tL7DEQ1" = SCRAM client-first-message
+#1  ^^ 55 bytes forwarded at +0.61s
+#1  server -> client: "R" = Authentication "\x00\x00\x00\x5c" = 92 bytes "\x00\x00\x00\x0b" = AuthenticationSASLContinue
+#1    "r=fci+VTkzKrO1kJLK0tL7DEQ1Urymgg5N9lizsp07o96IuAEP,s=KBGVGRza5gHefnp4OSU8Gw==,i=4096" = SCRAM server-first-message
+#1  ^^ 93 bytes forwarded at +0.71s
+#1  client -> server: "p" = SASLResponse "\x00\x00\x00\x6c" = 108 bytes
+#1    "c=biws,r=fci+VTkzKrO1kJLK0tL7DEQ1Urymgg5N9lizsp07o96IuAEP,p=PTTYe085GzltpFoYDRDnnJZMPxUKE1Ajrryw6XFY74E=" = SCRAM client-final-message
+#1  ^^ 109 bytes forwarded at +0.71s
+#1  server -> client: "R" = Authentication "\x00\x00\x00\x36" = 54 bytes "\x00\x00\x00\x0c" = AuthenticationSASLFinal
+#1    "v=Oj1crnRpVuFmr693/pTL1lf5+sP7rV0eDW6A/kCTCjg=" = SCRAM server-final-message
+#1  server -> client: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x00" = AuthenticationOk
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x15" = 21 bytes "is_superuser\x00" = key "off\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x17" = 23 bytes "DateStyle\x00" = key "ISO, MDY\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x17" = 23 bytes "in_hot_standby\x00" = key "off\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x23" = 35 bytes "standard_conforming_strings\x00" = key "on\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x19" = 25 bytes "integer_datetimes\x00" = key "on\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x19" = 25 bytes "server_encoding\x00" = key "UTF8\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x20" = 32 bytes "search_path\x00" = key "\"$user\", public\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x1a" = 26 bytes "application_name\x00" = key "psql\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x26" = 38 bytes "default_transaction_read_only\x00" = key "off\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x27" = 39 bytes "session_authorization\x00" = key "neondb_owner\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x18" = 24 bytes "server_version\x00" = key "17.5\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x1b" = 27 bytes "IntervalStyle\x00" = key "postgres\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x11" = 17 bytes "TimeZone\x00" = key "GMT\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x19" = 25 bytes "client_encoding\x00" = key "UTF8\x00" = value
+#1  server -> client: "S" = ParameterStatus "\x00\x00\x00\x1a" = 26 bytes "scram_iterations\x00" = key "4096\x00" = value
+#1  server -> client: "K" = BackendKeyData "\x00\x00\x00\x0c" = 12 bytes "\x8c\xa5\xc2\x9a" = process ID "\xfe\xb8\x7d\x87" = secret key
+#1  server -> client: "Z" = ReadyForQuery "\x00\x00\x00\x05" = 5 bytes "I" = idle
+#1  ^^ 504 bytes forwarded at +1.22s
+#1  client -> server: "Q" = Query "\x00\x00\x00\x12" = 18 bytes "SELECT now();\x00" = query
+#1  ^^ 19 bytes forwarded at +8.62s
+#1  server -> client: "T" = RowDescription "\x00\x00\x00\x1c" = 28 bytes "\x00\x01" = 1 columns follow
+#1    "now\x00" = column name "\x00\x00\x00\x00" = table OID: 0 "\x00\x00" = table attrib no: 0 
+#1    "\x00\x00\x04\xa0" = type OID: 1184 "\x00\x08" = type length: 8 "\xff\xff\xff\xff" = type modifier: -1 "\x00\x00" = format: text
+#1  server -> client: "D" = DataRow "\x00\x00\x00\x27" = 39 bytes "\x00\x01" = 1 columns follow
+#1    "\x00\x00\x00\x1d" = 29 bytes "2025-07-04 13:29:08.633783+00" = column value
+#1  server -> client: "C" = CommandComplete "\x00\x00\x00\x0d" = 13 bytes "SELECT 1\x00" = command tag
+#1  server -> client: "Z" = ReadyForQuery "\x00\x00\x00\x05" = 5 bytes "I" = idle
+#1  ^^ 89 bytes forwarded at +8.73s
+#1  client -> server: "X" = Terminate "\x00\x00\x00\x04" = 4 bytes
+#1  ^^ 5 bytes forwarded at +10.15s
+#1  client hung up
+#1  connection end
 ```
 
 (In the terminal, this would be in colour).
@@ -147,7 +146,7 @@ listening ...
 
 ```text
 % elephantshark --help
-Elephantshark
+Elephantshark v0.2.0, Postgres network traffic monitor
 https://github.com/neondatabase-labs/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0
 
 Usage:
@@ -182,12 +181,12 @@ elephantshark [options]
         --[no-]log-certs             Log TLS certificates (default: false)
         --log-forwarded none|raw|annotated
                                      Whether and how to log forwarded traffic (default: annotated)
-        --[no-]quit-on-hangup        Quit when client or server disconnects, instead of looping (default: false)
+        --[no-]quit-on-hangup        Exit when first client or server disconnects (default: false)
         --client-sslkeylogfile /path/to/log
                                      Where to append client traffic TLS decryption data (default: nowhere)
         --server-sslkeylogfile /path/to/log
                                      Where to append server traffic TLS decryption data (default: nowhere)
-        --[no-]bw                    Force monochrome output even to TTY (default: auto)
+        --[no-]bw                    Force monochrome output even to TTY (default: automatic)
 ```
 
 What are these options for?
@@ -316,6 +315,12 @@ To run the tests, ensure Ruby, Docker and OpenSSL are on your `PATH`. Then clone
 * Get the `pg` gem: `gem install pg`
 * Optionally, create a file `tests/.env` containing `DATABASE_URL="postgresql://..."` which must point to a database with a PKI-signed SSL cert (e.g. on Neon)
 * Run `tests/test.sh` — or to see OpenSSL, Docker and Elephantshark output alongside test results, `tests/test.sh --verbose`
+
+
+### Change log
+
+* 0.1: Initial release
+* 0.2: Support for parallel connections (logged as #1, #2, etc.)
 
 
 ### License
