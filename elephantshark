@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+VERSION = '0.2.0'
+
 require "optparse"
 require "openssl"
 require "securerandom" # for cert generation
@@ -24,6 +26,7 @@ Thread.abort_on_exception = true
 Thread.report_on_exception = false
 
 SCRIPT_NAME = "Elephantshark" # note: name must be valid as a certificate CN
+SCRIPT_DESC = "Postgres network traffic monitor"
 SCRIPT_INFO = "https://github.com/neondatabase-labs/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0"
 
 options = { # set defaults
@@ -52,7 +55,7 @@ options = { # set defaults
 }
 
 OptionParser.new do |opts|
-  opts.banner = "#{SCRIPT_NAME}\n#{SCRIPT_INFO}\n\nUsage:\nelephantshark [options]\n\n--client-... options affect the connection from the client to Elephantshark\n--server-... options affect the onward connection from Elephantshark to the server\n\n"
+  opts.banner = "#{SCRIPT_NAME} v#{VERSION}, #{SCRIPT_DESC}\n#{SCRIPT_INFO}\n\nUsage:\nelephantshark [options]\n\n--client-... options affect the connection from the client to Elephantshark\n--server-... options affect the onward connection from Elephantshark to the server\n\n"
   opts.on("--server-host a.b.cd",
           "Use a fixed Postgres server hostname (default: via SNI, or 'localhost')") { |v| options[:target] = v }
   opts.on("--server-delete-suffix .b.cd",
@@ -90,12 +93,12 @@ OptionParser.new do |opts|
   opts.on("--log-forwarded none|raw|annotated", ["none", "raw", "annotated"],
           "Whether and how to log forwarded traffic (default: #{options[:log_proxied]})") { |v| options[:log_proxied] = v }
   opts.on("--[no-]quit-on-hangup",
-          "Quit when client or server disconnects, instead of looping (default: #{options[:quit_on_hangup]})") { |v| options[:quit_on_hangup] = v }
+          "Exit when first client or server disconnects (default: #{options[:quit_on_hangup]})") { |v| options[:quit_on_hangup] = v }
   opts.on("--client-sslkeylogfile /path/to/log",
           "Where to append client traffic TLS decryption data (default: nowhere)") { |v| options[:client_sslkeylogfile] = v }
   opts.on("--server-sslkeylogfile /path/to/log",
           "Where to append server traffic TLS decryption data (default: nowhere)") { |v| options[:server_sslkeylogfile] = v }
-  opts.on("--[no-]bw", "Force monochrome output even to TTY (default: auto)") { |v| options[:bw] = v }
+  opts.on("--[no-]bw", "Force monochrome output even to TTY (default: automatic)") { |v| options[:bw] = v }
 end.parse!
 
 options[:sslmode] = 'verify-full' if options[:sslrootcert] == 'system'  # matches libpq behaviour
