@@ -24,9 +24,9 @@ Thread.abort_on_exception = true
 Thread.report_on_exception = false
 
 SCRIPT_NAME = "Elephantshark" # note: name must be valid as a certificate CN
-SCRIPT_VERS = '0.2.0'
+SCRIPT_VERS = '0.2.1'
 SCRIPT_DESC = "Postgres network traffic monitor"
-SCRIPT_INFO = "https://github.com/neondatabase-labs/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0"
+SCRIPT_INFO = "https://github.com/neondatabase/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0"
 
 options = { # set defaults
   target: nil,
@@ -54,6 +54,7 @@ options = { # set defaults
 }
 
 OptionParser.new do |opts|
+  opts.version = SCRIPT_VERS
   opts.banner = "#{SCRIPT_NAME} v#{SCRIPT_VERS}, #{SCRIPT_DESC}\n#{SCRIPT_INFO}\n\nUsage:\nelephantshark [options]\n\n--client-... options affect the connection from the client to Elephantshark\n--server-... options affect the onward connection from Elephantshark to the server\n\n"
   opts.on("--server-host a.b.cd",
           "Use a fixed Postgres server hostname (default: via SNI, or 'localhost')") { |v| options[:target] = v }

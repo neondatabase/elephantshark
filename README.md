@@ -26,7 +26,7 @@ Note that `sslmode=require` is quite widely used but by itself [provides no secu
 On macOS, install Elephantshark via Homebrew tap:
 
 ```bash
-% brew install neondatabase-labs/elephantshark/elephantshark
+% brew install neondatabase/elephantshark/elephantshark
 ```
 
 Or on any platform, simply download [the `elephantshark` script](elephantshark) and run it using Ruby 3.3 or higher (earlier Ruby versions may support some but not all features). It has no dependencies beyond the Ruby standard library.
@@ -146,8 +146,8 @@ Back in the first terminal, see what bytes got exchanged:
 
 ```text
 % elephantshark --help
-Elephantshark v0.2.0, Postgres network traffic monitor
-https://github.com/neondatabase-labs/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0
+Elephantshark v0.2.1, Postgres network traffic monitor
+https://github.com/neondatabase/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0
 
 Usage:
 elephantshark [options]
