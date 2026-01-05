@@ -183,7 +183,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         !rescued && result
       end
 
-      do_test("detect possinle infinite loop when listen and connect host:port are the same") do
+      do_test("detect possible infinite loop when host:port for listen and connect is the same") do
         _, es_log, rescued = with_elephantshark('', 54321, 54321) do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
