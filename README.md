@@ -186,6 +186,7 @@ elephantshark [options]
                                      Where to append client traffic TLS decryption data (default: nowhere)
         --server-sslkeylogfile /path/to/log
                                      Where to append server traffic TLS decryption data (default: nowhere)
+        --[no-]allow-self-loop       Allow listen and connect on the same address + port (default: false)
         --[no-]bw                    Force monochrome output even to TTY (default: automatic)
 ```
 
