@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Copyright 2025 Databricks, Inc.
+# Copyright 2025 - 2026 Databricks, Inc.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ Thread.abort_on_exception = true
 Thread.report_on_exception = false
 
 SCRIPT_NAME = "Elephantshark" # note: name must be valid as a certificate CN
-SCRIPT_VERS = '0.2.1'
+SCRIPT_VERS = '0.2.2'
 SCRIPT_DESC = "Postgres network traffic monitor"
-SCRIPT_INFO = "https://github.com/neondatabase/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0"
+SCRIPT_INFO = "https://github.com/neondatabase/elephantshark ++ Copyright 2025 - 2026 Databricks, Inc. ++ License: Apache 2.0"
 
 options = { # set defaults
   target: nil,
@@ -49,6 +49,7 @@ options = { # set defaults
   client_sslkeylogfile: nil,
   server_sslkeylogfile: nil,
   bw: nil,
+  allow_self_loop: false,
   quit_on_hangup: false,
   channel_binding: "prefer",
 }
@@ -98,6 +99,7 @@ OptionParser.new do |opts|
           "Where to append client traffic TLS decryption data (default: nowhere)") { |v| options[:client_sslkeylogfile] = v }
   opts.on("--server-sslkeylogfile /path/to/log",
           "Where to append server traffic TLS decryption data (default: nowhere)") { |v| options[:server_sslkeylogfile] = v }
+  opts.on("--[no-]allow-self-loop", "Allow listen and connect on the same address + port (default: #{options[:allow_self_loop]})") { |v| options[:allow_self_loop] = v }
   opts.on("--[no-]bw", "Force monochrome output even to TTY (default: automatic)") { |v| options[:bw] = v }
 end.parse!
 
@@ -695,6 +697,23 @@ def make_key_and_cert(subject, sig)
   [key, cert]
 end
 
+# infinite loop detection
+
+def normalize_host(host)
+  # fancier checks and lookups are possible, but this should catch many issues
+  host = host.downcase.strip 
+  case host
+  when '', 'localhost', 'localhost.localdomain', '127.0.0.1', '0.0.0.0', /^[:0]+1$/, /^[:0]+$/
+    :local
+  else
+    host
+  end
+end
+
+def connecting_to_self?(target_host, target_port, listen_host, listen_port)
+  target_port == listen_port && normalize_host(target_host) == normalize_host(listen_host)
+end
+
 # main loop
 
 ssl_request = [8, (1234 << 16) + 5679].pack("NN")
@@ -709,15 +728,14 @@ loop do
   conn_num += 1
   print_conn_num(conn_num)
   puts "listening on #{options[:listen_ip]} port #{options[:listen_port]} ..."
-  
-  client_sock = server.accept
-  print_conn_num(conn_num)
-  puts "connected at t0 = #{Time.now}"    
 
-  conn_thread = Thread.new(client_sock, conn_num) do |client_sock, conn_num|
+  conn_thread = Thread.new(server.accept, conn_num) do |client_sock, conn_num|
     begin
       # make sure these names are defined in the ensure block
       server_sock = client_to_server_thread = server_to_client_thread = nil
+
+      print_conn_num(conn_num)
+      puts "connected at t0 = #{Time.now}"
 
       cnputs = lambda do |*args|
         args.each_with_index do |arg, i|
@@ -811,11 +829,12 @@ loop do
 
       cnputs.("client TLS cert", client_sock.cert.to_text, client_sock.cert.to_pem) if options[:log_certs] && client_sock.respond_to?(:cert)
 
-      early_exit.("reading first eight bytes") if first_eight.nil? # start again if disconnected
+      early_exit.("reading first eight bytes") if first_eight.nil? || first_eight.length < 8 # start again if disconnected
 
       # connection startup + auth
 
       len = first_eight[0..3].unpack1("N")
+
       startup_msg = client_sock.read(len - 8)
       full_startup = first_eight + startup_msg
       cnputs.(client_to_script(PgMessage.new(full_startup, :startup).inspect))
@@ -826,6 +845,9 @@ loop do
       server_name = options[:target] || (target_via_sni ? target_via_sni.chomp(options[:delete_host_suffix]) : "localhost")
       cnputs.("connecting to Postgres server: #{server_name}")
 
+      if connecting_to_self?(server_name, options[:connect_port], options[:listen_ip], options[:listen_port]) && !options[:allow_self_loop]
+        early_exit.("to avoid possible infinite loop: host + port for listen and connect are the same (disable this check with --allow-self-loop)")
+      end
       server_sock = TCPSocket.new(server_name, options[:connect_port])
 
       if options[:sslmode] != 'disable'
@@ -999,11 +1021,11 @@ loop do
       exit_queue.pop
 
     ensure
-      cnputs.("connection end", "") # empty string = extra newline
-      client_sock.close unless client_sock.nil?
-      server_sock.close unless server_sock.nil?
+      cnputs.("connection end")
       client_to_server_thread.kill unless client_to_server_thread.nil?
       server_to_client_thread.kill unless server_to_client_thread.nil?
+      client_sock.close unless client_sock.nil?
+      server_sock.close unless server_sock.nil?
     end
   end
 

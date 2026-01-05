@@ -146,8 +146,8 @@ Back in the first terminal, see what bytes got exchanged:
 
 ```text
 % elephantshark --help
-Elephantshark v0.2.1, Postgres network traffic monitor
-https://github.com/neondatabase/elephantshark ++ Copyright 2025 Databricks, Inc. ++ License: Apache 2.0
+Elephantshark v0.2.2, Postgres network traffic monitor
+https://github.com/neondatabase/elephantshark ++ Copyright 2025 - 2026 Databricks, Inc. ++ License: Apache 2.0
 
 Usage:
 elephantshark [options]

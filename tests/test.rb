@@ -80,8 +80,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
 
   def with_elephantshark(args = '', listen_port = 54321, connect_port = 54320)
     rescued = false
-    stdin, stdout_stderr, thread = Open3.popen2e("./elephantshark --server-connect-port #{connect_port} --client-listen-port #{listen_port} #{args}")
-    stdin.close # not needed
+    _, stdout_stderr, thread = Open3.popen2e("./elephantshark --server-connect-port #{connect_port} --client-listen-port #{listen_port} #{args}")
     await_port(listen_port)
     es_log = ''
 
@@ -182,6 +181,13 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
           do_test_query('postgresql://frodo:friend@localhost:65432/frodo?sslmode=require&channel_binding=disable')
         end
         !rescued && result
+      end
+
+      do_test("detect possinle infinite loop when listen and connect host:port are the same") do
+        _, es_log, rescued = with_elephantshark('', 54321, 54321) do
+          do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
+        end
+        rescued && contains(es_log, "disconnected to avoid possible infinite loop")
       end
 
       do_test("connecting to server with --server-sslmode=disable succeeds with no SSL") do
@@ -437,7 +443,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         !rescued && results.all?
       end
 
-      do_test("support multiple connections in parallel (TODO: fix flaky test)") do
+      do_test("support multiple connections in parallel") do
         results = []
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         _, _, rescued = with_elephantshark do
