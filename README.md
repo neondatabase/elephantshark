@@ -211,7 +211,7 @@ It’s also possible to:
 
 * Configure Elephantshark to strip a different domain suffix using the option `--server-delete-suffix .abc.xyz`.
 
-* Specify a fixed server hostname, instead of getting it via SNI from the client, using the `--server-host db.blah.xyz` option. This is useful especially for non-TLS client connections, where SNI is unavailable.
+* Specify a fixed server hostname, instead of getting it via SNI from the client, using the `--server-host db.blah.xyz` option. This is useful especially for unencrypted client connections, for which SNI is unavailable. Note that a CancelRequest message (e.g. as sent by psql when you press Ctrl-C) always travels over an unencrypted connection: to make that work as expected you should therefore specify an explicit `--server-host`.
 
 #### Everything local: Postgres, Elephantshark and client
 
