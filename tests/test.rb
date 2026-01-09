@@ -111,12 +111,6 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
     end
   end
 
-  def do_sleep_query(connection_string, seconds)
-    PG.connect(connection_string) do |conn|
-      conn.exec("SELECT pg_sleep($1)", [seconds])
-    end
-  end
-
   $passes = $fails = 0
 
   def do_test(desc)
@@ -449,7 +443,9 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         _, _, rescued = with_elephantshark do
           3.times.map do |i|
             Thread.new do
-              results << do_sleep_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable', 2)
+              PG.connect('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable') do |conn|
+                results << conn.exec("SELECT pg_sleep($1)", [2])
+              end
             end
           end.each { |thread| thread.join }
         end
@@ -463,6 +459,21 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
         rescued && contains(es_log, 'Connection refused')
+      end
+
+      do_test("handle cancelling") do
+        t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        _, es_log, rescued = with_elephantshark do
+          PG.connect('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable') do |conn|
+            Thread.new do
+              sleep(1)
+              conn.cancel
+            end
+            conn.exec("SELECT pg_sleep($1)", [10])
+          end
+        end
+        t1 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        rescued && contains(es_log, "canceling statement due to user request") && t1 - t0 < 5
       end
 
       do_test("SSLKEYLOGFILE writing") do
