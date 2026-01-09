@@ -158,8 +158,6 @@ def script_to_server(s) "#{colour(Colour::C2S, "script -> server:")} #{s}" end
 # Postgres message parsing/annotation
 
 class PgMessage
-  @@prev_auth_type = nil # lets us better interpret some auth messages
-
   def initialize(msg, source)
     @msg = msg
     @source = source # :server, :client, :startup or nil
@@ -312,7 +310,7 @@ class PgMessage
           s += annotate(formatr, "copy format: #{text_or_binary(formatv)}", colcountr, "#{colcountv} column formats follow")
           colcountv.times do
             colformatv, colformatr = int16
-            s += ' ' + annotate(colformatr, "column format: #{text_or_binary(colformatv)}")
+            s += "\n" + annotate(colformatr, "column format: #{text_or_binary(colformatv)}")
           end
           { G: "CopyInResponse", H: "CopyOutResponse", W: "CopyBothResponse" }[type_value.to_sym]
 
@@ -329,7 +327,11 @@ class PgMessage
 
         when "R"
           authtypev, authtyper = int32
-          @@prev_auth_type = authtypev
+
+          # save this to help interpret 'p' message later
+          conn_thread = Thread.current[:conn_thread] || Thread.current
+          conn_thread[:prev_auth_type] = authtypev
+
           auth_msg_name = case authtypev
           when 0; "AuthenticationOk"
           when 2; "AuthenticationKerberosV5"
@@ -401,7 +403,7 @@ class PgMessage
           else
             s += annotate(valuelenr, "#{valuelenv} bytes follow")
             _, valuer = str(valuelenv)
-            s += annotate(valuer, "value")
+            s += " " + annotate(valuer, "value")
           end
           "FunctionCallResponse"
 
@@ -421,7 +423,7 @@ class PgMessage
           s += annotate(paramcountr, "number of parameters")
           paramcountv.times do
             paramoidv, paramoidr = int32
-            s += annotate(paramoidr, "parameter type OID: #{paramoidv}")
+            s += "\n" + annotate(paramoidr, "parameter type OID: #{paramoidv}")
           end
           "ParameterDescription"
 
@@ -448,25 +450,25 @@ class PgMessage
           s += "\n" + annotate(r, "#{code_count} parameter format codes follow")
           code_count.times do
             v, r = int16
-            s += annotate(r, "format: #{text_or_binary(v)}")
+            s += "\n" + annotate(r, "format: #{text_or_binary(v)}")
           end
           paramcountv, paramcountr = int16
           s += "\n" + annotate(paramcountr, "#{paramcountv} parameter values follow")
           paramcountv.times do
             paramlenv, paramlenr = int32
             if paramlenv == -1
-              s += annotate(paramlenr, "null")
+              s += "\n" + annotate(paramlenr, "null")
             else
-              s += annotate(paramlenr, "#{paramlenv} bytes follow")
+              s += "\n" + annotate(paramlenr, "#{paramlenv} bytes follow")
               _, paramr = str(paramlenv)
-              s += annotate(paramr, "parameter value")
+              s += "\n" + annotate(paramr, "parameter value")
             end
           end
           resultcountv, resultcountr = int16
           s += "\n" + annotate(resultcountr, "#{resultcountv} result format codes follow")
           resultcountv.times do
             formatv, formatr = int16
-            s += annotate(formatr, "format: #{text_or_binary(formatv)}")
+            s += "\n" + annotate(formatr, "format: #{text_or_binary(formatv)}")
           end
           "Bind"
 
@@ -488,14 +490,14 @@ class PgMessage
           s += "\n" + annotate(formatcountr, "#{formatcountv} format codes follow")
           formatcountv.times do
             formatv, formatr = int16
-            s += annotate(formatr, "format: #{text_or_binary(formatv)}")
+            s += "\n" + annotate(formatr, "format: #{text_or_binary(formatv)}")
           end
           argscountv, argscountr = int16
           s += "\n" + annotate(argscountr, "#{argscountv} arguments follow")
           argscountv.times do
             arglenv, arglenr = int32
             _, argvalr = str(arglenv)
-            s += annotate(arglenr, "#{arglenv} bytes", argvalr, "argument")
+            s += "\n" + annotate(arglenr, "#{arglenv} bytes", argvalr, "argument")
           end
           formatv, formatr = int16
           s += "\n" + annotate(formatr, "result format: #{text_or_binary(formatv)}")
@@ -507,10 +509,10 @@ class PgMessage
           _, dr, _, qr = cstr + cstr
           s += annotate(dr, "destination prepared statement", qr, "SQL query")
           pdt_count, r = int16
-          s += annotate(r, "#{pdt_count} parameter data types follow")
+          s += "\n" + annotate(r, "#{pdt_count} parameter data types follow")
           pdt_count.times do
             v, r = int32
-            s += annotate(r, "parameter type OID: #{v}")
+            s += "\n" + annotate(r, "parameter type OID: #{v}")
           end
           "Parse"
 
@@ -531,7 +533,8 @@ class PgMessage
 
         when "p"
           # p can mean various things depending on context, so we need to check the last message sent the other way
-          case @@prev_auth_type
+          conn_thread = Thread.current[:conn_thread] || Thread.current
+          case conn_thread[:prev_auth_type]
           when 3 # AuthenticationCleartextPassword
             _, pwdr = cstr
             s += annotate(REDACT ? "[redacted]" : pwdr, "password")
@@ -1000,7 +1003,8 @@ loop do
       exit_queue = Queue.new
 
       # pass messages from server to client
-      server_to_client_thread = Thread.new do
+      server_to_client_thread = Thread.new(Thread.current) do |parent_thread|
+        Thread.current[:conn_thread] = parent_thread
         while true do
           messages = server_reader.available_messages { |str| cnputs.(server_to_client(str)) if log_proxied }
           if messages.nil?
@@ -1015,7 +1019,8 @@ loop do
       end
 
       # pass messages from client to server
-      client_to_server_thread = Thread.new do
+      client_to_server_thread = Thread.new(Thread.current) do |parent_thread|
+        Thread.current[:conn_thread] = parent_thread
         while true do
           messages = client_reader.available_messages { |str| cnputs.(client_to_server(str)) if log_proxied }
           if messages.nil?

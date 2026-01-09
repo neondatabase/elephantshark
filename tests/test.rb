@@ -437,12 +437,13 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         !rescued && results.all?
       end
 
-      do_test("support multiple connections in parallel") do
+      do_test("support multiple connections in parallel (can be flaky)") do
         results = []
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        _, _, rescued = with_elephantshark do
-          3.times.map do |i|
-            Thread.new do
+        _, es_log, rescued = with_elephantshark do
+          5.times.map do |i|
+            Thread.new(i) do |i|
+              sleep(0.02 * i) if i > 2 # 3 at the same moment, the rest spread out a little
               PG.connect('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable') do |conn|
                 results << conn.exec("SELECT pg_sleep($1)", [2])
               end
@@ -450,7 +451,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
           end.each { |thread| thread.join }
         end
         t1 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        !rescued && results.all? && t1 - t0 < 5  # in serial would be >= 6
+        !rescued && results.all? && contains(es_log, 'PasswordMessage/SASLInitialResponse/SASLResponse/GSSResponse', false) && t1 - t0 < 10  # in serial would be >= 20
       end
 
       do_test("support only the socket-testing connection with --quit-on-hangup") do
