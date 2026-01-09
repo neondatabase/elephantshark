@@ -213,18 +213,26 @@ class PgMessage
     end
 
     s = ""
-    if @source == :startup
-      lenv, lenr, versionv, versionr = int32 + int32
-      puts "unexpected postgres protocol version: #{versionr}" unless versionv == 0x00030000
-      s += annotate(lenr, "#{lenv} bytes of startup message", versionr, "protocol version")
-      loop do
-        keyv, keyr, = cstr
-        if keyv.empty?
-          s += "\n" + annotate(keyr, "end")
-          break
+    if @source == :startup # also CancelRequest
+      lenv, lenr, versionmajv, versionmajr, versionminv, versionminr = int32 + int16 + int16
+      if versionmajv == 1234 && versionminv == 5678
+        s += annotate(lenr, "#{lenv} bytes of CancelRequest message", versionmajr, "cancel code: #{versionmajv}", versionminr, "cancel code: #{versionminv}")
+        processidv, processidr = int32
+        _, secretkeyr = bytes(lenv - 12) # 12 bytes = skipping the 3 int32s we already read
+        s += "\n" + annotate(processidr, "target backend process ID: #{processidv}")
+        s += "\n" + annotate(secretkeyr, "target backend secret key")
+
+      else
+        s += annotate(lenr, "#{lenv} bytes of startup message", versionmajr, "protocol major version #{versionmajv}", versionminr, "protocol minor version #{versionminv}")
+        loop do
+          keyv, keyr, = cstr
+          if keyv.empty?
+            s += "\n" + annotate(keyr, "end")
+            break
+          end
+          _, valuer = cstr
+          s += "\n" + annotate(keyr, "key", valuer, "value")
         end
-        _, valuer = cstr
-        s += "\n" + annotate(keyr, "key", valuer, "value")
       end
 
     else
@@ -309,8 +317,10 @@ class PgMessage
         when "I"; "EmptyQueryResponse"
 
         when "K"
-          _, pidr, _, secretkeyr = int32 + int32
-          s += annotate(pidr, "process ID", secretkeyr, "secret key")
+          pidv, pidr = int32
+          s += "\n" + annotate(pidr, "process ID #{pidv}")
+          _, secretkeyr = bytes(lenv - 8)
+          s += "\n" + annotate(secretkeyr, "secret key")
           "BackendKeyData"
 
         when "N"; "NoticeResponse"
@@ -559,7 +569,7 @@ class PgMessage
       s = annotate(type_repr, type_name, lenr, "#{lenv} bytes") + (s[0] == "\n" ? "" : " ") + s # prefix the message name and length
     end
 
-    s += annotate(@msg[@i..].inspect, "data") if @msg.length > @i # log any so-far unparsed data
+    s += "\n" + annotate(@msg[@i..].inspect, "data") if @msg.length > @i # log any so-far unparsed data
     s
   end
 end
