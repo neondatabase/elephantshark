@@ -735,29 +735,24 @@ ssl_request = [8, (1234 << 16) + 5679].pack("NN")
 server = TCPServer.new(options[:listen_ip], options[:listen_port])
 conn_num = 0
 
-def print_conn_num(conn_num)
-  print(colour(Colour::CONN, "\##{conn_num}  "))
+def conn_num_str(conn_num)
+  colour(Colour::CONN, "\##{conn_num}  ")
 end
 
 loop do
   conn_num += 1
-  print_conn_num(conn_num)
-  puts "listening on #{options[:listen_ip]} port #{options[:listen_port]} ..."
+  puts "#{conn_num_str(conn_num)}listening on #{options[:listen_ip]} port #{options[:listen_port]} ..."
 
   conn_thread = Thread.new(server.accept, conn_num) do |client_sock, conn_num|
     begin
       # make sure these names are defined in the ensure block
       server_sock = client_to_server_thread = server_to_client_thread = nil
-
-      print_conn_num(conn_num)
-      puts "connected at t0 = #{Time.now}"
+      puts "#{conn_num_str(conn_num)}connected at t0 = #{Time.now}"
 
       cnputs = lambda do |*args|
         args.each_with_index do |arg, i|
           arg.split("\n").each_with_index do |line, j|
-            print_conn_num(conn_num)
-            print("  ") unless i == 0 && j == 0
-            puts(line)
+            puts "#{conn_num_str(conn_num)}#{i == 0 && j == 0 ? "" : "  "}#{line}"
           end
         end
       end
