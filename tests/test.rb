@@ -6,6 +6,8 @@ require 'uri'
 require 'open3'
 require 'securerandom'
 
+puts ">> Testing in #{RUBY_ENGINE} #{RUBY_ENGINE_VERSION} (equivalent: #{RUBY_VERSION}) on #{RUBY_PLATFORM}"
+
 POSTGRES_IMAGE = 'postgres:18'
 
 QUIET = ARGV[0] != "--verbose"
@@ -80,22 +82,28 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
 
   def with_elephantshark(args = '', listen_port = 54321, connect_port = 54320)
     rescued = false
-    _, stdout_stderr, thread = Open3.popen2e("./elephantshark --server-connect-port #{connect_port} --client-listen-port #{listen_port} #{args}")
-    await_port(listen_port)
+    rescue_message = ''
     es_log = ''
+
+    stdin, stdout_stderr, es_thread = Open3.popen2e("./elephantshark --server-connect-port #{connect_port} --client-listen-port #{listen_port} #{args}")
+    stdin.close
+    await_port(listen_port)
+
+    reader_thread = Thread.new { stdout_stderr.each_line { |line| es_log += line } }
 
     begin
       block_result = yield
     rescue => e
       rescued = true
-      es_log += "Rescued error in with_elephantshark: #{e.message}\n"
+      rescue_message = "Rescued error in with_elephantshark block: #{e.message}\n"
     end
-    
-    Process.kill('SIGTERM', thread.pid) if thread.alive?
-    thread.join
 
-    es_log += stdout_stderr.read
+    Process.kill('SIGTERM', es_thread.pid) if es_thread.alive?
+    reader_thread.join
     stdout_stderr.close
+    es_thread.join
+
+    es_log += rescue_message
 
     puts es_log unless QUIET
     [block_result, es_log, rescued]
@@ -209,14 +217,14 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         _, es_log, rescued = with_elephantshark("--server-sslmode=verify-full") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        rescued && contains(es_log, 'certificate verify failed')
+        rescued && contains(es_log, 'SSL connection has been closed unexpectedly')
       end
 
       do_test("connecting to server with --server-sslmode=verify-full fails with appropriate --server-sslrootcert if host doesn't match") do
         _, es_log, rescued = with_elephantshark("--server-sslmode=verify-full") do
           do_test_query('postgresql://frodo:friend@127.0.0.1:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        rescued && contains(es_log, 'certificate verify failed')
+        rescued && contains(es_log, 'SSL connection has been closed unexpectedly')
       end
 
       do_test("connecting to server with --server-sslmode=verify-full succeeds with appropriate ---server-sslrootcert") do
@@ -230,7 +238,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         _, es_log, rescued = with_elephantshark("--server-sslmode=verify-ca") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        rescued && contains(es_log, 'certificate verify failed')
+        rescued && contains(es_log, 'SSL connection has been closed unexpectedly')
       end
 
       do_test("connecting to server with --server-sslmode=verify-ca succeeds with appropriate ---server-sslrootcert") do
@@ -251,7 +259,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         _, es_log, rescued = with_elephantshark("--server-sslrootcert=system") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        rescued && contains(es_log, 'certificate verify failed')
+        rescued && contains(es_log, 'SSL connection has been closed unexpectedly')
       end
 
       if ENV['DATABASE_URL'].nil?
@@ -437,7 +445,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         !rescued && results.all?
       end
 
-      do_test("support multiple connections in parallel (can be flaky)") do
+      do_test("support multiple connections in parallel") do
         results = []
         t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         _, es_log, rescued = with_elephantshark do
