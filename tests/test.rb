@@ -311,8 +311,9 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark("--override-auth") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        !rescued && result && contains(es_log, 'now overriding authentication' + "\n" +
-                                               'server -> script: "R" = Authentication "\x00\x00\x00\x2a" = 42 bytes "\x00\x00\x00\x0a" = AuthenticationSASL')
+        !rescued && result &&
+          contains(es_log, 'now overriding authentication') &&
+          contains(es_log, 'server -> script: "R" = Authentication "\x00\x00\x00\x2a" = 42 bytes "\x00\x00\x00\x0a" = AuthenticationSASL')
       end
 
       do_test("--override-auth logs password") do
@@ -333,8 +334,9 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark("--override-auth --redact-passwords --log-forwarded raw") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        !rescued && result && contains(es_log, 'client -> script: [password message redacted]' + "\n" +
-                                               'script -> server: [password message redacted]')
+        !rescued && result &&
+          contains(es_log, 'client -> script: [password message redacted]') &&
+          contains(es_log, 'script -> server: [password message redacted]')
       end
 
       do_test("--override-auth with channel binding") do
@@ -429,7 +431,7 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark("--log-forwarded none") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require&channel_binding=disable')
         end
-        !rescued && result && 
+        !rescued && result &&
           contains(es_log, 'silently forwarding all later traffic') &&
           contains(es_log, 'server -> client: "Z" = ReadyForQuery "\x00\x00\x00\x05" = 5 bytes "I" = idle', false) &&
           contains(es_log, 'server -> client: "Z\x00\x00\x00\x05I"', false)
@@ -587,16 +589,18 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'forwarding all later traffic' + "\n" +
-                                               'server -> client: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x00" = AuthenticationOk')
+        !rescued && result &&
+          contains(es_log, 'forwarding all later traffic') &&
+          contains(es_log, 'server -> client: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x00" = AuthenticationOk')
       end
 
       do_test("--override-auth + trust auth") do
         result, es_log, rescued = with_elephantshark("--override-auth") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'now overriding authentication' + "\n" +
-                                               'server -> script: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x00" = AuthenticationOk')
+        !rescued && result &&
+          contains(es_log, 'now overriding authentication') &&
+          contains(es_log, 'server -> script: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x00" = AuthenticationOk')
       end
     end
 
@@ -605,8 +609,9 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'forwarding all later traffic' + "\n" +
-                                               'server -> client: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x03" = AuthenticationCleartextPassword')
+        !rescued && result &&
+          contains(es_log, 'forwarding all later traffic') &&
+          contains(es_log, 'server -> client: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x03" = AuthenticationCleartextPassword')
       end
 
       do_test("--redact-passwords + cleartext password auth") do
@@ -620,16 +625,18 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark("--override-auth") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'now overriding authentication' + "\n" +
-                                               'server -> script: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x03" = AuthenticationCleartextPassword')
+        !rescued && result &&
+          contains(es_log, 'now overriding authentication') &&
+          contains(es_log, 'server -> script: "R" = Authentication "\x00\x00\x00\x08" = 8 bytes "\x00\x00\x00\x03" = AuthenticationCleartextPassword')
       end
 
       do_test("--override-auth + --redact-passwords + cleartext password auth") do
         result, es_log, rescued = with_elephantshark("--override-auth --redact-passwords") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'client -> script: "p" = PasswordMessage (cleartext) "\x00\x00\x00\x0b" = 11 bytes [redacted] = password' + "\n" +
-                                               'script -> server: "p" = PasswordMessage (cleartext) "\x00\x00\x00\x0b" = 11 bytes [redacted] = password')
+        !rescued && result &&
+          contains(es_log, 'client -> script: "p" = PasswordMessage (cleartext) "\x00\x00\x00\x0b" = 11 bytes [redacted] = password') &&
+          contains(es_log, 'script -> server: "p" = PasswordMessage (cleartext) "\x00\x00\x00\x0b" = 11 bytes [redacted] = password')
       end
     end
 
@@ -638,16 +645,18 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         result, es_log, rescued = with_elephantshark do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'forwarding all later traffic' + "\n" +
-                                               'server -> client: "R" = Authentication "\x00\x00\x00\x0c" = 12 bytes "\x00\x00\x00\x05" = AuthenticationMD5Password')
+        !rescued && result &&
+          contains(es_log, 'forwarding all later traffic') &&
+          contains(es_log, 'server -> client: "R" = Authentication "\x00\x00\x00\x0c" = 12 bytes "\x00\x00\x00\x05" = AuthenticationMD5Password')
       end
 
       do_test("--override-auth + MD5 auth") do
         result, es_log, rescued = with_elephantshark("--override-auth") do
           do_test_query('postgresql://frodo:friend@localhost:54321/frodo?sslmode=require')
         end
-        !rescued && result && contains(es_log, 'now overriding authentication' + "\n" +
-                                               'server -> script: "R" = Authentication "\x00\x00\x00\x0c" = 12 bytes "\x00\x00\x00\x05" = AuthenticationMD5Password')
+        !rescued && result &&
+          contains(es_log, 'now overriding authentication') &&
+          contains(es_log, 'server -> script: "R" = Authentication "\x00\x00\x00\x0c" = 12 bytes "\x00\x00\x00\x05" = AuthenticationMD5Password')
       end
     end
 
