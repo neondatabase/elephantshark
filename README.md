@@ -29,9 +29,7 @@ On macOS, install Elephantshark via Homebrew tap:
 % brew install neondatabase/elephantshark/elephantshark
 ```
 
-Or on any platform, simply download [the `elephantshark` script](elephantshark) and run it using Ruby 3.3 or higher (earlier Ruby versions may support some but not all features). It has no dependencies beyond the Ruby standard library.
-
-(TruffleRuby, tested at version 33.0, appears to run elephantshark without issues. JRuby, tested at version 10.0, does not.)
+Or on any platform, simply download [the `elephantshark` script](elephantshark) and run it with Ruby. It has no dependencies beyond the Ruby standard library. Ideally, use Ruby 3.3 or higher. Versions back to 2.x may work, but not all features will be supported. Alternatively, TruffleRuby (tested at version 33.0) works nicely. JRuby (tested at version 10.0) [does not](https://github.com/jruby/jruby/issues/9178).
 
 
 ## Example session
@@ -233,6 +231,7 @@ And then connect the client via Elephantshark on that non-standard port:
 psql 'postgresql://me:mypassword@localhost:5433/mydb'
 ```
 
+
 ### Security: connection from client
 
 By default, Elephantshark generates a minimal, self-signed TLS certificate on the fly, and does nothing to interfere with the authentication process.
@@ -251,14 +250,14 @@ If your Postgres client is using `channel_binding=require`, you’ll need to:
 
 ### Security: connection to server
 
-Elephantshark has `--server-sslmode` and `--server-sslrootcert` options that work the same as the `sslmode` and `sslrootcert` options to `libpq`. To secure the onward connection to a server that has an SSL certificate signed by a public CA, specify `--server-sslrootcert=system`.
+Elephantshark has `--server-sslmode` and `--server-sslrootcert` options that work the same as the `sslmode` and `sslrootcert` options to `libpq`. To properly secure the onward connection to a server that has an SSL certificate signed by a public CA, specify `--server-sslrootcert=system`.
 
 
 ### Logging
 
 By default, Elephantshark logs and annotates all Postgres traffic that passes through. This behaviour can be specified explicitly as `--log-forwarded annotated`.
 
-Alternatives are `--log-forwarded raw`, which logs the data without annotation (it just calls Ruby’s `inspect` on the binary string), or `--log-forwarded none`, which prevents most logging. You might use `--log-forwarded none` if you're using Elephantshark to enable the use of Wireshark, for example.
+Alternatives are `--log-forwarded raw`, which logs the data without annotation (it just calls Ruby’s `inspect` on the binary string), or `--log-forwarded none`, which prevents most logging. You might use `--log-forwarded none` if you're using Elephantshark to enable the use of Wireshark, for example. (Note that with `--log-forwarded none`, unencrypted `CancelRequests` may not be correctly forwarded, because this relies on message parsing).
 
 Example log line for `--log-forwarded annotated`:
 
@@ -293,6 +292,8 @@ The `--client-cert-sig` option specifies the encryption type of the self-signed 
 
 If the `--send-chunking byte` option is given, all traffic is forwarded one single byte at a time in both directions. This is extremely inefficient, but it can smoke out software that doesn’t correctly buffer its TCP/TLS input. The default is `--send-chunking whole`, which forwards as many complete Postgres messages as are available when new data are received.
 
+With Elephantshark configured to both listen and connect on the same address + port, and without SNI on a TLS connection to indicate a different server, you could get into a loop in which Elephantshark forwards traffic to itself _ad infinitum_. Elephantshark does its best to detect and prevent this. You can override that protection with the option `--allow-self-loop`.
+
 The `--quit-on-hangup` option causes the script to exit when the first Postgres connection closes, instead of listening for a new connection.
 
 
@@ -315,7 +316,7 @@ If using Wireshark, you might also want to specify `--log-forwarded none`.
 
 ### Tests
 
-To run the tests, ensure Ruby, podman, OpenSSL and psql are on your `PATH`. Then clone this repo and from the root directory:
+To run the tests, ensure Ruby, `podman`, OpenSSL and `psql` are on your `PATH`. Then clone this repo and from the root directory:
 
 * Get the `pg` gem: `gem install pg`
 * Optionally, create a file `tests/.env` containing `DATABASE_URL="postgresql://..."` which must point to a database with a PKI-signed SSL cert (e.g. on Neon)
@@ -325,8 +326,8 @@ To run the tests, ensure Ruby, podman, OpenSSL and psql are on your `PATH`. Then
 ### High-level change log
 
 * 0.1: Initial release
-* 0.2: Support for parallel connections (logged as #1, #2, etc.)
-* 0.3: Honour unencrypted `CancelRequest` messages (no SNI) by remembering server host names
+* 0.2: Support parallel connections (logged as `#1`, `#2`, etc.)
+* 0.3: Honour unencrypted `CancelRequest` messages (which lack SNI) by remembering server host names for active connections
 
 ### License
 
