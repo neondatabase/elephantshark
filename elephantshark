@@ -71,7 +71,7 @@ OptionParser.new do |opts|
           "SSL mode for connection to server (default: #{options[:sslmode]})") { |v| options[:sslmode] = v }
   opts.on("--server-sslrootcert system|/path/to/cert",
           "Root/CA certificate for connection to server (default: #{options[:sslrootcert] || 'none'})") { |v| options[:sslrootcert] = v }
-  opts.on("--server-sslnegotiation mimic|direct|postgres",
+  opts.on("--server-sslnegotiation mimic|direct|postgres", ['mimic', 'direct', 'postgres'],
           "SSL negotiation style: mimic client, direct or traditional Postgres (default: #{options[:ssl_negotiation]})") { |v| options[:ssl_negotiation] = v }
   opts.on("--[no-]override-auth",
           "Require password auth from client, do SASL/MD5/password auth with server (default: #{options[:force_password]})") { |v| options[:force_password] = v }
@@ -818,17 +818,16 @@ loop do
       client_ctx.options |= OpenSSL::SSL::OP_IGNORE_UNEXPECTED_EOF if OpenSSL::SSL.const_defined?(:OP_IGNORE_UNEXPECTED_EOF)
 
       if options[:ssl_key] && options[:ssl_cert]
-        client_ctx.key = OpenSSL::PKey::RSA.new(File.open(options[:ssl_key]))
+        client_ctx.key = OpenSSL::PKey.read(File.read(options[:ssl_key]))
         client_ctx.cert = OpenSSL::X509::Certificate.new(File.open(options[:ssl_cert]))
       else
         raise "must specify both or neither of --client-ssl-cert and --client-ssl-key" if options[:ssl_key] || options[:ssl_cert]
         client_ctx.key, client_ctx.cert = make_key_and_cert("CN=#{SCRIPT_NAME}", options[:cert_sig])
       end
 
-      client_ctx.servername_cb = lambda do |sniData|
-        sni_sock, sni_name = sniData
+      client_ctx.servername_cb = lambda do |(sni_sock, sni_name)|
         target_via_sni = sni_name
-        sni_sock.context
+        client_ctx
       end
 
       client_ctx.alpn_select_cb = lambda do |protocols|
@@ -1107,7 +1106,7 @@ loop do
       server_to_client_thread.kill unless server_to_client_thread.nil?
       client_sock.close unless client_sock.nil?
       server_sock.close unless server_sock.nil?
-      $conn_data.delete($conn_data[conn_num][:cancel_key])
+      $conn_data.delete($conn_data[conn_num][:cancel_key]) if $conn_data[conn_num]
       $conn_data.delete(conn_num)
     end
   end

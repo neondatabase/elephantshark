@@ -266,10 +266,12 @@ Dir.mktmpdir('elephantshark-tests') do |tmpdir|
         puts 'SKIP  cannot test --server-sslrootcert=system without DATABASE_URL env var'
       else
         db_uri = URI.parse(ENV['DATABASE_URL'])
+        db_userinfo = db_uri.userinfo
         db_host = db_uri.host
         db_port = db_uri.port || 5432
         db_uri.host = 'localhost'
         db_uri.port = 54321
+        db_uri.userinfo = db_userinfo # since Ruby 4, setting host wipes userinfo: https://github.com/ruby/uri/issues/184
 
         do_test("connecting to server with --server-sslrootcert=system succeeds when server has appropriate cert") do
           result, es_log, rescued = with_elephantshark("--server-sslrootcert=system --server-host #{db_host}", 54321, db_port) do
